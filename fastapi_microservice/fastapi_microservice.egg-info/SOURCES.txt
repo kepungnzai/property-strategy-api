@@ -1,0 +1,8 @@
+README.md
+main.py
+pyproject.toml
+fastapi_microservice.egg-info/PKG-INFO
+fastapi_microservice.egg-info/SOURCES.txt
+fastapi_microservice.egg-info/dependency_links.txt
+fastapi_microservice.egg-info/requires.txt
+fastapi_microservice.egg-info/top_level.txt

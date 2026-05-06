@@ -6,7 +6,7 @@
 
 ## Install Dependencies
 ```bash
-pip install -r requirements.txt
+pip install .
 ```
 
 ## Configure Environment
@@ -17,7 +17,7 @@ cp .env.example .env
 
 ## Run Service
 ```bash
-uvicorn main:app --reload
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 Service runs on `http://localhost:8000/graphql`
 
@@ -26,18 +26,15 @@ Service runs on `http://localhost:8000/graphql`
 
 ### Example Mutations
 ```graphql
-mutation {
-  analyze(location: "New York", propertyType: "Residential") {
-    status
-    analysis
-  }
+ query { 
+  analyze(location: "loc", propertyType: "type")
+  { status analysis } 
 }
 
-mutation {
-  generateReport(format: "html") {
-    status
-    format
-    content
+ query { 
+    generateReport(format: "html") { 
+      status format content 
+    } 
   }
-}
+
 ```

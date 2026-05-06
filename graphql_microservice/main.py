@@ -12,7 +12,10 @@ REASONING_ENGINE_ID = os.getenv("REASONING_ENGINE_ID")
 MOCK_SERVICE = os.getenv("MOCK_SERVICE", "false").lower() == "true"
 
 if not MOCK_SERVICE and PROJECT_ID and LOCATION:
-    aiplatform.init(project=PROJECT_ID, location=LOCATION)
+    try:
+        aiplatform.init(project=PROJECT_ID, location=LOCATION)
+    except Exception as e:
+        print(f"Warning: Failed to initialize AI Platform: {e}")
 
 
 @strawberry.type
@@ -34,23 +37,28 @@ class Query:
     def health_check(self) -> str:
         return "GraphQL service is running"
 
-
-@strawberry.type
-class Mutation:
-    @strawberry.mutation
+    @strawberry.field
     def analyze(self, location: str, property_type: str) -> AnalysisResponse:
         if MOCK_SERVICE:
             return AnalysisResponse(
                 status="mock_success",
                 analysis=f"Mock analysis for {property_type} in {location}",
             )
-        engine = aiplatform.ReasoningEngine(REASONING_ENGINE_ID)
-        response = engine.predict(
-            {"location": location, "property_type": property_type}
-        )
-        return AnalysisResponse(status="success", analysis=str(response))
+        if not REASONING_ENGINE_ID:
+            return AnalysisResponse(
+                status="error",
+                analysis="REASONING_ENGINE_ID environment variable is not set",
+            )
+        try:
+            engine = aiplatform.ReasoningEngine(REASONING_ENGINE_ID)
+            response = engine.predict(
+                {"location": location, "property_type": property_type}
+            )
+            return AnalysisResponse(status="success", analysis=str(response))
+        except Exception as e:
+            return AnalysisResponse(status="error", analysis=str(e))
 
-    @strawberry.mutation
+    @strawberry.field
     def generate_report(self, format: str = "html") -> ReportResponse:
         if MOCK_SERVICE:
             content = (
@@ -64,5 +72,5 @@ class Mutation:
         )
 
 
-schema = strawberry.Schema(query=Query, mutation=Mutation)
+schema = strawberry.Schema(query=Query)
 app = GraphQL(schema)

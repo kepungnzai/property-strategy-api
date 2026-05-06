@@ -1,5 +1,0 @@
-strawberry-graphql
-strawberry-asgi
-uvicorn
-python-dotenv
-google-cloud-aiplatform
