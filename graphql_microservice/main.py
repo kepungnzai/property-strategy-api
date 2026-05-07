@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import os
 import google.cloud.aiplatform as aiplatform
 import asyncio
+from typing import Optional
 
 load_dotenv()
 
@@ -22,19 +23,20 @@ if not MOCK_SERVICE and PROJECT_ID and LOCATION:
 @strawberry.type
 class AnalysisResponse:
     status: str
-    analysis: str = None
+    analysis: Optional[str] = None
 
 
 @strawberry.type
 class ReportResponse:
     status: str
     format: str
-    content: str = None
+    content: Optional[str] = None
+
 
 @strawberry.type
 class StreamResponse:
     status: str
-    analysis: str = None
+    analysis: Optional[str] = None
 
 
 @strawberry.type
@@ -77,11 +79,14 @@ class Query:
             status="success", format=format, content=f"Generated {format} report"
         )
 
+
 @strawberry.type
 class Subscription:
     @strawberry.subscription
     async def analyze_stream(self, location: str, property_type: str) -> StreamResponse:
-        MOCK_SERVICE = True 
+        print(
+            f"analyze_stream called with location={location}, property_type={property_type}"
+        )
         if MOCK_SERVICE:
             numbers = [
                 "100000000000000000000",
@@ -95,6 +100,12 @@ class Subscription:
                 await asyncio.sleep(1)
         else:
             try:
+                if not REASONING_ENGINE_ID:
+                    yield StreamResponse(
+                        status="error",
+                        analysis="REASONING_ENGINE_ID environment variable is not set",
+                    )
+                    return
                 engine = aiplatform.ReasoningEngine(REASONING_ENGINE_ID)
                 response = engine.predict(
                     {"location": location, "property_type": property_type}
