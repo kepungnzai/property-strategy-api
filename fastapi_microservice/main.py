@@ -1,7 +1,9 @@
 from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
 import os
 import google.cloud.aiplatform as aiplatform
+import vertexai
 
 load_dotenv()
 
@@ -10,22 +12,57 @@ LOCATION = os.getenv("LOCATION")
 REASONING_ENGINE_ID = os.getenv("REASONING_ENGINE_ID")
 MOCK_SERVICE = os.getenv("MOCK_SERVICE", "false").lower() == "true"
 
-if not MOCK_SERVICE and PROJECT_ID and LOCATION:
-    aiplatform.init(project=PROJECT_ID, location=LOCATION)
+# if not MOCK_SERVICE and PROJECT_ID and LOCATION:
+#     aiplatform.init(project=PROJECT_ID, location=LOCATION)
 
 app = FastAPI(title="Property Location Strategy API (FastAPI)")
 
 
-@app.post("/analyze")
+@app.get("/analyze")
 async def analyze_location(location: str, property_type: str):
+    MOCK_SERVICE = "true"
     if MOCK_SERVICE:
         return {
             "status": "mock_success",
             "analysis": f"Mock analysis for {property_type} properties in {location}",
         }
-    engine = aiplatform.ReasoningEngine(REASONING_ENGINE_ID)
-    response = engine.predict({"location": location, "property_type": property_type})
+
+    print(f"Using REASONING_ENGINE_ID: {REASONING_ENGINE_ID}")
+    # Get the existing agent engine
+    client = vertexai.Client(
+        location=LOCATION,
+    )
+
+    remote_agent_engine = client.agent_engines.get(name=REASONING_ENGINE_ID)
+    response = remote_agent_engine.predict(
+        message=f"Analyze {property_type} properties in {location}", user_id="test"
+    )
+
     return {"status": "success", "analysis": response}
+
+
+@app.get("/analyze/stream")
+async def analyze_location_stream(
+    location: str = "San Francisco", property_type: str = "residential"
+):
+    async def generate():
+        MOCK_SERVICE = "true"
+        if MOCK_SERVICE:
+            yield f"Mock response for {property_type} properties in {location}\n"
+            return
+        
+        client = vertexai.Client(
+            location=LOCATION,
+        )
+        
+        remote_agent_engine = client.agent_engines.get(name=REASONING_ENGINE_ID)
+
+        async for event in remote_agent_engine.async_stream_query(
+            message=f"Analyze {property_type} properties in {location}", user_id="test"
+        ):
+            yield f"{event}\n"
+
+    return StreamingResponse(generate(), media_type="text/plain")
 
 
 @app.get("/report")

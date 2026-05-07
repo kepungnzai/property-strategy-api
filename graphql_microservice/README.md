@@ -37,4 +37,12 @@ Service runs on `http://localhost:8000/graphql`
     } 
   }
 
+subscription {
+  analyzeStream(location: "New York", propertyType: "Residential") {
+    status
+    analysis
+  }
+}
+
+
 ```

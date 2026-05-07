@@ -3,6 +3,7 @@ import strawberry
 from dotenv import load_dotenv
 import os
 import google.cloud.aiplatform as aiplatform
+import asyncio
 
 load_dotenv()
 
@@ -29,6 +30,11 @@ class ReportResponse:
     status: str
     format: str
     content: str = None
+
+@strawberry.type
+class StreamResponse:
+    status: str
+    analysis: str = None
 
 
 @strawberry.type
@@ -71,6 +77,32 @@ class Query:
             status="success", format=format, content=f"Generated {format} report"
         )
 
+@strawberry.type
+class Subscription:
+    @strawberry.subscription
+    async def analyze_stream(self, location: str, property_type: str) -> StreamResponse:
+        MOCK_SERVICE = True 
+        if MOCK_SERVICE:
+            numbers = [
+                "100000000000000000000",
+                "200000000000000000000",
+                "300000000000000000000",
+                "400000000000000000000",
+                "500000000000000000000",
+            ]
+            for num in numbers:
+                yield StreamResponse(status="success", analysis=num)
+                await asyncio.sleep(1)
+        else:
+            try:
+                engine = aiplatform.ReasoningEngine(REASONING_ENGINE_ID)
+                response = engine.predict(
+                    {"location": location, "property_type": property_type}
+                )
+                yield StreamResponse(status="success", analysis=str(response))
+            except Exception as e:
+                yield StreamResponse(status="error", analysis=str(e))
 
-schema = strawberry.Schema(query=Query)
+
+schema = strawberry.Schema(query=Query, subscription=Subscription)
 app = GraphQL(schema)
