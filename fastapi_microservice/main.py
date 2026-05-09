@@ -1,3 +1,4 @@
+import logging
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
@@ -5,15 +6,15 @@ import os
 import google.cloud.aiplatform as aiplatform
 import vertexai
 
+from fastapi_microservice.agentic_platform import ReasoningEngine
+
+logging.basicConfig(level=logging.INFO)
 load_dotenv()
 
 PROJECT_ID = os.getenv("PROJECT_ID")
 LOCATION = os.getenv("LOCATION")
 REASONING_ENGINE_ID = os.getenv("REASONING_ENGINE_ID")
 MOCK_SERVICE = os.getenv("MOCK_SERVICE", "false").lower() == "true"
-
-# if not MOCK_SERVICE and PROJECT_ID and LOCATION:
-#     aiplatform.init(project=PROJECT_ID, location=LOCATION)
 
 app = FastAPI(title="Property Location Strategy API (FastAPI)")
 
@@ -26,9 +27,9 @@ async def analyze_location(location: str, property_type: str):
             "status": "mock_success",
             "analysis": f"Mock analysis for {property_type} properties in {location}",
         }
+    
+    re = ReasoningEngine()
 
-    print(f"Using REASONING_ENGINE_ID: {REASONING_ENGINE_ID}")
-    # Get the existing agent engine
     client = vertexai.Client(
         location=LOCATION,
     )
@@ -50,11 +51,11 @@ async def analyze_location_stream(
         if MOCK_SERVICE:
             yield f"Mock response for {property_type} properties in {location}\n"
             return
-        
+
         client = vertexai.Client(
             location=LOCATION,
         )
-        
+
         remote_agent_engine = client.agent_engines.get(name=REASONING_ENGINE_ID)
 
         async for event in remote_agent_engine.async_stream_query(
