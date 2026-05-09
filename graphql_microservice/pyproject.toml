@@ -10,4 +10,10 @@ dependencies = [
     "uvicorn",
     "python-dotenv",
     "google-cloud-aiplatform",
+    "motor>=3.3.0",
+    "pymongo>=4.6.0",
+    "pydantic>=2.5.0",
 ]
+
+[tool.setuptools.packages.find]
+where = ["src"]
