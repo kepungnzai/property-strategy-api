@@ -3,10 +3,8 @@ from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
 import os
-import google.cloud.aiplatform as aiplatform
-import vertexai
-
-from fastapi_microservice.agentic_platform import ReasoningEngine
+from fastapi_microservice.agentic_platform.reasoningEngine import ReasoningEngine
+import uuid
 
 logging.basicConfig(level=logging.INFO)
 load_dotenv()
@@ -18,7 +16,6 @@ MOCK_SERVICE = os.getenv("MOCK_SERVICE", "false").lower() == "true"
 
 app = FastAPI(title="Property Location Strategy API (FastAPI)")
 
-
 @app.get("/analyze")
 async def analyze_location(location: str, property_type: str):
     MOCK_SERVICE = "true"
@@ -27,44 +24,29 @@ async def analyze_location(location: str, property_type: str):
             "status": "mock_success",
             "analysis": f"Mock analysis for {property_type} properties in {location}",
         }
-    
+
     re = ReasoningEngine()
-
-    client = vertexai.Client(
-        location=LOCATION,
-    )
-
-    remote_agent_engine = client.agent_engines.get(name=REASONING_ENGINE_ID)
-    response = remote_agent_engine.predict(
-        message=f"Analyze {property_type} properties in {location}", user_id="test"
+    response = await re.sendQuery(
+        message=f"Analyze {property_type} properties in {location}", user_id=str(uuid.uuid4())
     )
 
     return {"status": "success", "analysis": response}
 
+# @app.get("/analyze/stream")
+# async def analyze_location_stream(
+#     location: str = "San Francisco", property_type: str = "residential"
+# ):
+#     async def generate():
+#         MOCK_SERVICE = "true"
+#         if MOCK_SERVICE:
+#             yield f"Mock response for {property_type} properties in {location}\n"
+#             return
 
-@app.get("/analyze/stream")
-async def analyze_location_stream(
-    location: str = "San Francisco", property_type: str = "residential"
-):
-    async def generate():
-        MOCK_SERVICE = "true"
-        if MOCK_SERVICE:
-            yield f"Mock response for {property_type} properties in {location}\n"
-            return
-
-        client = vertexai.Client(
-            location=LOCATION,
-        )
-
-        remote_agent_engine = client.agent_engines.get(name=REASONING_ENGINE_ID)
-
-        async for event in remote_agent_engine.async_stream_query(
-            message=f"Analyze {property_type} properties in {location}", user_id="test"
-        ):
-            yield f"{event}\n"
-
-    return StreamingResponse(generate(), media_type="text/plain")
-
+#         re = ReasoningEngine()
+#         return await re.sendQuery(
+#             message=f"Analyze {property_type} properties in {location}", user_id=str(uuid.uuid4())
+#         )
+#     return StreamingResponse(generate(), media_type="text/plain")
 
 @app.get("/report")
 async def generate_report(format: str = "html"):

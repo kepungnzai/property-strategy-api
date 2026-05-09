@@ -8,7 +8,6 @@ logger = logging.getLogger(__name__)
 
 class ReasoningEngine:
     def __init__(self):
-
         load_dotenv()
         self.PROJECT_ID = os.getenv("PROJECT_ID")
         self.LOCATION = os.getenv("LOCATION")
@@ -20,19 +19,7 @@ class ReasoningEngine:
             location=self.LOCATION,
         )
 
-    # async def predict(self, message: str, user_id: str) -> str:
-    #     try:
-    #         logger.info(f"Using REASONING_ENGINE_ID: {self.REASONING_ENGINE_ID}")
-    #         client = await self.get_client()
-    #         remote_agent_engine = client.agent_engines.get(
-    #             name=self.REASONING_ENGINE_ID
-    #         )
-    #         return remote_agent_engine.predict(message=message, user_id=user_id)
-    #     except Exception as e:
-    #         logger.error(f"Error occurred: {e}")
-    #         raise
-
-    async def sendQuery(self, message: str, user_id: str):
+    async def send_query(self, message: str, user_id: str):
         try:
             logger.info(f"Using REASONING_ENGINE_ID: {self.REASONING_ENGINE_ID}")
             client = await self.get_client()
