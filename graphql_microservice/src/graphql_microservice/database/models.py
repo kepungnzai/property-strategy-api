@@ -8,11 +8,13 @@ class Location(BaseModel):
     state: str
     country: str
 
+
 class Report(BaseModel):
     id: str
     location: Location
     property_type: str
     current_analysis: str
+    user_id: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -21,3 +23,10 @@ class ReportCreate(BaseModel):
     location: Location
     property_type: str
     current_analysis: str
+    user_id: Optional[str] = None
+
+
+class UserReport(BaseModel):
+    userId: str
+    reportId: str
+    creationTime: Optional[datetime] = None

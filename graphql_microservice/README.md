@@ -61,25 +61,9 @@ query {
   }
 }
 
-
-mutation {
-  saveReport(
-    report: {
-      location: {
-        suburb: "St Albans"
-        state: "Melbourne"
-        country: "Australia"
-      }
-      property_type: "House"
-      current_analysis: "Property analysis details..."
-    }
-  ) {
-    status
-    id
-    location
-    property_type
-    current_analysis
-  }
+query { 
+  getReport(reportId: "69ffb02965244429466456ec")
+  { status , currentAnalysis } 
 }
 
 mutation {
@@ -92,6 +76,7 @@ mutation {
       }
       propertyType: "House"
       currentAnalysis: "Property analysis details..."
+      userId: "123"
     }
   ) {
     status
@@ -102,6 +87,82 @@ mutation {
   }
 }
 
+query GetReportsByUserId($userId: String!, $limit: Int) {
+  getReportsByUserId(userId: $userId, limit: $limit) {
+    status
+    userId
+    reports {
+      id
+      location
+      propertyType
+      currentAnalysis
+    }
+  }
+}
+
+
+Variables 
+
+{
+  "userId": "123",
+  "limit": 10
+}
+
+
+# Get User Profile
+query GetUserProfile($userId: String!) {
+  getUserProfile(userId: $userId) {
+    status
+    userId
+    user_profile_criteria {
+      property_price
+      property_price_increase
+      proximity_amenities
+      proximity_schools
+      proximity_train_station
+      natural_hazard_risk
+    }
+  }
+}
+
+# Variables
+{
+  "userId": "123"
+}
+
+# Save User Profile
+
+query GetUserProfile($userId: String!) {
+  getUserProfile(userId: $userId) {
+    status
+    userId
+     userProfileCriteria {
+      propertyPrice
+      propertyPriceIncrease
+      proximityAmenities
+      proximitySchools
+      proximityTrainStation
+      naturalHazardRisk
+    }
+  }
+}
+
+# Variables
+{
+  "userId": "123"
+}
+
+
+mutation {
+  saveUserReport(
+    userId: "user123",
+    reportId: "507f1f77bcf86cd799439011"
+  ) {
+    status
+    userId
+    reportId
+  }
+}
 
 
 ```
@@ -142,3 +203,25 @@ The report container is structures
 - location 
 - property type 
 - current analysis 
+
+In the get_reports_by_user_id the implementation is not quite right, it needs to be update to retrieve from a new collection called userReport which contains reportId, userId, creationTime. When this function is called 1. we will retrieve data from  userReport by userId. Then based on reportId, it will retrieve the relevant report from report collections. Then we will return response as userId and list of RetrievedReport.
+
+Create 2 additional endpoint for saveUserProfile and getUserProfile to save userProfile into a new db collection call userProfile. The userProfile should have the following structure:
+
+- userId
+- userProfileCriteria which reference 
+
+- class UserProfileInput:
+    property_price: int
+    property_price_increase: int
+    proximity_amenities: int
+    proximity_schools: int
+    proximity_train_station: int
+    natural_hazard_risk: int
+
+getUserProfile endpoint accept userId and returns a response which contains userId and list of UserProfileInput.
+saveUserPrfile endpoint accept userId and UserProfileInput (single) 
+please provide implementations for both
+
+Implement saveUserReport which accept userId, reportId that persist data into userReport (this collections store user association to a report)
+please provide validation to ensure reportId exist first before writting to the database. 

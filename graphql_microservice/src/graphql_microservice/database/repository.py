@@ -1,8 +1,9 @@
 import re
 from typing import Optional, List
+from datetime import datetime
 from bson import ObjectId
 from .connection import get_database
-from .models import Report, ReportCreate, Location
+from .models import Report, ReportCreate, Location, UserReport
 
 
 def parse_location_string(location_str: str) -> Location:
@@ -112,3 +113,73 @@ async def find_report_by_id(report_id: str) -> Optional[Report]:
         document["id"] = str(document.pop("_id"))
         return Report(**document)
     return None
+
+
+async def find_reports_by_user_id(
+    user_id: str, limit: int = 50
+) -> tuple[str, List[Report]]:
+    db = await get_database()
+
+    user_report_docs = (
+        await db.userReport.find({"userId": user_id})
+        .sort("creationTime", -1)
+        .to_list(length=limit)
+    )
+
+    if not user_report_docs:
+        return (user_id, [])
+
+    report_ids = [doc["reportId"] for doc in user_report_docs]
+    object_ids = [ObjectId(rid) for rid in report_ids if ObjectId.is_valid(rid)]
+
+    report_docs = await db.reports.find({"_id": {"$in": object_ids}}).to_list(
+        length=None
+    )
+
+    reports = []
+    for doc in report_docs:
+        doc["id"] = str(doc.pop("_id"))
+        reports.append(Report(**doc))
+
+    return (user_id, reports)
+
+
+async def get_user_profile(user_id: str) -> Optional[dict]:
+    db = await get_database()
+    document = await db.userProfile.find_one({"userId": user_id})
+    if document:
+        document.pop("_id", None)
+        return document
+    return None
+
+
+async def save_user_profile(user_id: str, profile_data: dict) -> dict:
+    db = await get_database()
+    existing = await db.userProfile.find_one({"userId": user_id})
+
+    if existing:
+        criteria = existing.get("userProfileCriteria", [])
+        criteria.append(profile_data)
+        await db.userProfile.update_one(
+            {"userId": user_id}, {"$set": {"userProfileCriteria": criteria}}
+        )
+    else:
+        await db.userProfile.insert_one(
+            {"userId": user_id, "userProfileCriteria": [profile_data]}
+        )
+
+    return {"userId": user_id, "userProfileCriteria": [profile_data]}
+
+
+async def saveUserReport(user_id: str, report_id: str) -> Optional[UserReport]:
+    db = await get_database()
+    if not ObjectId.is_valid(report_id):
+        return None
+    report_exists = await db.reports.find_one({"_id": ObjectId(report_id)})
+    if not report_exists:
+        return None
+    user_report = UserReport(
+        userId=user_id, reportId=report_id, creationTime=datetime.utcnow()
+    )
+    await db.userReport.insert_one(user_report.model_dump())
+    return user_report

@@ -4,17 +4,21 @@ from dotenv import load_dotenv
 import os
 import google.cloud.aiplatform as aiplatform
 import asyncio
-from typing import Optional, List
+from typing import Optional, List, Callable
 from graphql_microservice.agentic.client import ReasoningEngineClient
 from graphql_microservice.database import (
     find_report_by_location,
     find_reports_by_ids,
     find_report_by_id,
+    find_reports_by_user_id,
     create_report,
     Location,
     ReportCreate,
+    get_user_profile,
+    save_user_profile,
+    saveUserReport,
 )
-from graphql_microservice.profile import UserProfile
+from graphql_microservice.profile import UserProfile, UserProfileInput, UserProfileData
 import uuid
 import logging
 import sys
@@ -68,16 +72,6 @@ class CompareResponse:
 
 
 @strawberry.input
-class UserProfileInput:
-    property_price: int
-    property_price_increase: int
-    proximity_amenities: int
-    proximity_schools: int
-    proximity_train_station: int
-    flood_bushfire_risk: int
-
-
-@strawberry.input
 class LocationInput:
     suburb: str
     state: str
@@ -89,6 +83,7 @@ class ReportInput:
     location: LocationInput
     property_type: str
     current_analysis: str
+    user_id: Optional[str] = None
 
 
 @strawberry.type
@@ -107,6 +102,29 @@ class RetrievedReport:
     location: Optional[str] = None
     property_type: Optional[str] = None
     current_analysis: Optional[str] = None
+
+
+@strawberry.type
+class ReportListResponse:
+    status: str
+    user_id: str
+    reports: List[RetrievedReport] = strawberry.field(default_factory=list)
+
+
+@strawberry.type
+class UserProfileResponse:
+    status: str
+    user_id: str
+    user_profile_criteria: List[UserProfileData] = strawberry.field(
+        default_factory=list
+    )
+
+
+@strawberry.type
+class UserReportResponse:
+    status: str
+    user_id: str
+    report_id: Optional[str] = None
 
 
 @strawberry.type
@@ -221,7 +239,7 @@ class Query:
                 "proximity_amenities": profile.proximity_amenities,
                 "proximity_schools": profile.proximity_schools,
                 "proximity_train_station": profile.proximity_train_station,
-                "flood_bushfire_risk": profile.flood_bushfire_risk,
+                "natural_hazard_risk": profile.natural_hazard_risk,
             }
 
             re = ReasoningEngineClient()
@@ -244,6 +262,7 @@ class Query:
 
     @strawberry.field
     async def get_report(self, report_id: str) -> RetrievedReport:
+        MOCK_SERVICE = False
         if MOCK_SERVICE:
             return RetrievedReport(
                 status="mock_success",
@@ -269,6 +288,60 @@ class Query:
             location=None,
             property_type=None,
             current_analysis=None,
+        )
+
+    @strawberry.field
+    async def get_reports_by_user_id(
+        self, user_id: str, limit: int = 50
+    ) -> ReportListResponse:
+        logger.info(
+            f"get_reports_by_user_id query invoked - user_id: {user_id}, limit: {limit}"
+        )
+
+        user_id_result, reports = await find_reports_by_user_id(user_id, limit)
+
+        if not reports:
+            return ReportListResponse(
+                status="success", user_id=user_id_result, reports=[]
+            )
+
+        retrieved_reports = []
+        for report in reports:
+            location_str = f"{report.location.suburb}, {report.location.state}, {report.location.country}"
+            retrieved_reports.append(
+                RetrievedReport(
+                    status="success",
+                    id=report.id,
+                    location=location_str,
+                    property_type=report.property_type,
+                    current_analysis=report.current_analysis,
+                )
+            )
+
+        logger.info(
+            f"get_reports_by_user_id success - user_id: {user_id}, count: {len(retrieved_reports)}"
+        )
+        return ReportListResponse(
+            status="success", user_id=user_id_result, reports=retrieved_reports
+        )
+
+    @strawberry.field
+    async def get_user_profile(self, user_id: str) -> UserProfileResponse:
+        logger.info(f"get_user_profile query invoked - user_id: {user_id}")
+
+        result = await get_user_profile(user_id)
+
+        if not result:
+            return UserProfileResponse(
+                status="success", user_id=user_id, user_profile_criteria=[]
+            )
+
+        profiles = result.get("userProfileCriteria", [])
+        user_profile_data = [UserProfileData(**p) for p in profiles]
+        return UserProfileResponse(
+            status="success",
+            user_id=result["userId"],
+            user_profile_criteria=user_profile_data,
         )
 
 
@@ -303,6 +376,7 @@ class Mutation:
                 location=location,
                 property_type=report.property_type,
                 current_analysis=report.current_analysis,
+                user_id=report.user_id,
             )
             saved = await create_report(report_create)
             location_str = f"{saved.location.suburb}, {saved.location.state}, {saved.location.country}"
@@ -326,6 +400,59 @@ class Mutation:
                 property_type=None,
                 current_analysis=None,
             )
+
+    @strawberry.mutation
+    async def save_user_profile(
+        self, user_id: str, profile: UserProfileInput
+    ) -> UserProfileResponse:
+        logger.info(f"save_user_profile mutation invoked - user_id: {user_id}")
+
+        profile_data = {
+            "property_price": profile.property_price,
+            "property_price_increase": profile.property_price_increase,
+            "proximity_amenities": profile.proximity_amenities,
+            "proximity_schools": profile.proximity_schools,
+            "proximity_train_station": profile.proximity_train_station,
+            "natural_hazard_risk": profile.natural_hazard_risk,
+        }
+
+        result = await save_user_profile(user_id, profile_data)
+
+        user_profile_data = UserProfileData(
+            property_price=profile.property_price,
+            property_price_increase=profile.property_price_increase,
+            proximity_amenities=profile.proximity_amenities,
+            proximity_schools=profile.proximity_schools,
+            proximity_train_station=profile.proximity_train_station,
+            natural_hazard_risk=profile.natural_hazard_risk,
+        )
+
+        return UserProfileResponse(
+            status="success",
+            user_id=result["userId"],
+            user_profile_criteria=[user_profile_data],
+        )
+
+    @strawberry.mutation
+    async def saveUserReport(self, user_id: str, report_id: str) -> UserReportResponse:
+        logger.info(
+            f"saveUserReport mutation invoked - user_id: {user_id}, report_id: {report_id}"
+        )
+
+        result = await saveUserReport(user_id, report_id)
+
+        if result is None:
+            return UserReportResponse(
+                status="error",
+                user_id=user_id,
+                report_id=None,
+            )
+
+        return UserReportResponse(
+            status="success",
+            user_id=result.userId,
+            report_id=result.reportId,
+        )
 
 
 @strawberry.type

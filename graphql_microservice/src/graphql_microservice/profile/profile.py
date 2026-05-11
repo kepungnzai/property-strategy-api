@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional
+import strawberry
 
 
 class UserProfile(BaseModel):
@@ -29,7 +30,18 @@ class UserProfile(BaseModel):
         return self.model_dump()
 
 
+@strawberry.input
 class UserProfileInput:
+    property_price: int
+    property_price_increase: int
+    proximity_amenities: int
+    proximity_schools: int
+    proximity_train_station: int
+    natural_hazard_risk: int
+
+
+@strawberry.type
+class UserProfileData:
     property_price: int
     property_price_increase: int
     proximity_amenities: int

@@ -1,3 +1,3 @@
-from .profile import UserProfile, UserProfileInput
+from .profile import UserProfile, UserProfileInput, UserProfileData
 
-__all__ = ["UserProfile", "UserProfileInput"]
+__all__ = ["UserProfile", "UserProfileInput", "UserProfileData"]
