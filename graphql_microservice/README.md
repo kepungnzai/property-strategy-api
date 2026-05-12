@@ -165,6 +165,35 @@ mutation {
 }
 
 
+mutation SaveUserProfile($userId: String!, $profile: UserProfileInput!) {
+  saveUserProfile(userId: $userId, profile: $profile) {
+    status
+    userId
+    userProfileCriteria {
+      propertyPrice
+      propertyPriceIncrease
+      proximityAmenities
+      proximitySchools
+      proximityTrainStation
+      naturalHazardRisk
+    }
+  }
+}
+
+{
+  "userId": "user-123",
+  "profile": {
+    "propertyPrice": 5,
+    "propertyPriceIncrease": 5,
+    "proximityAmenities": 5,
+    "proximitySchools": 5,
+    "proximityTrainStation": 5,
+    "naturalHazardRisk": 5
+  }
+}
+
+
+
 ```
 1. ensure the microservice support mongodb and add the production grade trial tested library.
 i want to ensure when user call the graphql endpoint, the business logic performs a checks on locations for example St Albans, Melbourne, Australia and look up database container call reports by matching location which needs to be suburb, state, country (this might change). Suggest a best possible matching approach given that we are passing in a string "St Albans, Melbourne, Australia".
@@ -206,7 +235,7 @@ The report container is structures
 
 In the get_reports_by_user_id the implementation is not quite right, it needs to be update to retrieve from a new collection called userReport which contains reportId, userId, creationTime. When this function is called 1. we will retrieve data from  userReport by userId. Then based on reportId, it will retrieve the relevant report from report collections. Then we will return response as userId and list of RetrievedReport.
 
-Create 2 additional endpoint for saveUserProfile and getUserProfile to save userProfile into a new db collection call userProfile. The userProfile should have the following structure:
+Create 2 additional endpoint for saveUserProfile   and getUserProfile to save userProfile into a new db collection call userProfile. The userProfile should have the following structure:
 
 - userId
 - userProfileCriteria which reference 
@@ -220,8 +249,13 @@ Create 2 additional endpoint for saveUserProfile and getUserProfile to save user
     natural_hazard_risk: int
 
 getUserProfile endpoint accept userId and returns a response which contains userId and list of UserProfileInput.
-saveUserPrfile endpoint accept userId and UserProfileInput (single) 
+saveUserProfile endpoint accept userId and UserProfileInput (single) 
 please provide implementations for both
 
 Implement saveUserReport which accept userId, reportId that persist data into userReport (this collections store user association to a report)
 please provide validation to ensure reportId exist first before writting to the database. 
+
+
+{"data":{"getReportsByUserId":{"status":"success","userId":"user123","reports":[{"id":"69ffb02965244429466456ec","location":"St Albans, Melbourne, Australia","propertyType":"House","currentAnalysis":"Property analysis details..."},{"id":"69ffb3fb42be745e9a6d99ac","location":"Geelong, Melbourne, Australia","propertyType":"House","currentAnalysis":"Property analysis details..."}]}}}
+
+
