@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY pyproject.toml .
 RUN pip install --no-cache-dir .
 
-COPY src/ ./src/
+COPY src/graphql_microservice ./src/
 
 ENV PYTHONPATH=/app/src
 
