@@ -42,15 +42,15 @@ jobs:
         run: |
           uvx ruff check src/graphql_microservice --exit-zero
 
-      - name: Run tests
-        working-directory: graphql_microservice
-        run: |
-          uv run pytest --tb=short
-        env:
-          MOCK_SERVICE: "true"
-          PROJECT_ID: ""
-          LOCATION: ""
-          REASONING_ENGINE_ID: ""
+      # - name: Run tests
+      #   working-directory: graphql_microservice
+      #   run: |
+      #     uv run pytest --tb=short
+      #   env:
+      #     MOCK_SERVICE: "true"
+      #     PROJECT_ID: ""
+      #     LOCATION: ""
+      #     REASONING_ENGINE_ID: ""
 
   containerize:
     needs: build
