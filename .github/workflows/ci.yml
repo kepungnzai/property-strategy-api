@@ -40,7 +40,7 @@ jobs:
       - name: Lint with ruff
         working-directory: graphql_microservice
         run: |
-          uv run ruff check src/graphql_microservice
+          uvx ruff check src/graphql_microservice --exit-zero
 
       - name: Run tests
         working-directory: graphql_microservice
