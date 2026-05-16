@@ -193,6 +193,20 @@ mutation SaveUserProfile($userId: String!, $profile: UserProfileInput!) {
 }
 
 
+mutation {
+  googleSignIn(idToken: "...") {
+    status
+    token
+    user {
+      id
+      email
+      name
+      picture
+    }
+  }
+}
+
+
 
 ```
 1. ensure the microservice support mongodb and add the production grade trial tested library.
@@ -259,3 +273,11 @@ please provide validation to ensure reportId exist first before writting to the 
 {"data":{"getReportsByUserId":{"status":"success","userId":"user123","reports":[{"id":"69ffb02965244429466456ec","location":"St Albans, Melbourne, Australia","propertyType":"House","currentAnalysis":"Property analysis details..."},{"id":"69ffb3fb42be745e9a6d99ac","location":"Geelong, Melbourne, Australia","propertyType":"House","currentAnalysis":"Property analysis details..."}]}}}
 
 
+  Please create another query and mutation service to create/update/query user account. The name of the db collection is account. 
+
+  The user account details are 
+  - id 
+  - name 
+  - email 
+
+or user can sign in using google. How to implement google sign in via the graphql service?

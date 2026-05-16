@@ -30,3 +30,10 @@ class UserReport(BaseModel):
     userId: str
     reportId: str
     creationTime: Optional[datetime] = None
+
+
+class GoogleUser(BaseModel):
+    google_id: str
+    email: str
+    name: Optional[str] = None
+    picture: Optional[str] = None

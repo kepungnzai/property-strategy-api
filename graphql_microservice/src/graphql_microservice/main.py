@@ -18,7 +18,8 @@ from graphql_microservice.database import (
     save_user_profile,
     saveUserReport,
 )
-from graphql_microservice.profile import UserProfile, UserProfileInput, UserProfileData
+from graphql_microservice.profile import UserProfileInput, UserProfileData
+from graphql_microservice.auth import verify_google_id_token, create_jwt_token
 import uuid
 import logging
 import sys
@@ -125,6 +126,21 @@ class UserReportResponse:
     status: str
     user_id: str
     report_id: Optional[str] = None
+
+
+@strawberry.type
+class AuthResponse:
+    status: str
+    token: Optional[str] = None
+    user: Optional["UserData"] = None
+
+
+@strawberry.type
+class UserData:
+    id: str
+    email: str
+    name: Optional[str] = None
+    picture: Optional[str] = None
 
 
 @strawberry.type
@@ -336,8 +352,11 @@ class Query:
                 status="success", user_id=user_id, user_profile_criteria=[]
             )
 
-        profiles = result.get("userProfileCriteria", [])
-        user_profile_data = [UserProfileData(**p) for p in profiles]
+        profile = result.get("userProfileCriteria")
+        if profile:
+            user_profile_data = [UserProfileData(**profile)]
+        else:
+            user_profile_data = []
         return UserProfileResponse(
             status="success",
             user_id=result["userId"],
@@ -347,6 +366,31 @@ class Query:
 
 @strawberry.type
 class Mutation:
+    @strawberry.mutation
+    async def google_sign_in(self, id_token: str) -> AuthResponse:
+        logger.info("google_sign_in mutation invoked")
+
+        google_user = await verify_google_id_token(id_token)
+        if not google_user:
+            return AuthResponse(
+                status="error",
+                token=None,
+                user=None,
+            )
+
+        token = create_jwt_token(google_user.google_id, google_user.email)
+
+        return AuthResponse(
+            status="success",
+            token=token,
+            user=UserData(
+                id=google_user.google_id,
+                email=google_user.email,
+                name=google_user.name,
+                picture=google_user.picture,
+            ),
+        )
+
     @strawberry.mutation
     async def save_report(self, report: ReportInput) -> SavedReport:
         logger.info(f"save_report mutation invoked")

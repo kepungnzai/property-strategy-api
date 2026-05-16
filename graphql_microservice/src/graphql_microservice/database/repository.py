@@ -158,17 +158,15 @@ async def save_user_profile(user_id: str, profile_data: dict) -> dict:
     existing = await db.userProfile.find_one({"userId": user_id})
 
     if existing:
-        criteria = existing.get("userProfileCriteria", [])
-        criteria.append(profile_data)
         await db.userProfile.update_one(
-            {"userId": user_id}, {"$set": {"userProfileCriteria": criteria}}
+            {"userId": user_id}, {"$set": {"userProfileCriteria": profile_data}}
         )
     else:
         await db.userProfile.insert_one(
-            {"userId": user_id, "userProfileCriteria": [profile_data]}
+            {"userId": user_id, "userProfileCriteria": profile_data}
         )
 
-    return {"userId": user_id, "userProfileCriteria": [profile_data]}
+    return {"userId": user_id, "userProfileCriteria": profile_data}
 
 
 async def saveUserReport(user_id: str, report_id: str) -> Optional[UserReport]:

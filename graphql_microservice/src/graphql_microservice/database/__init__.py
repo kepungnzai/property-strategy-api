@@ -1,5 +1,11 @@
 from .connection import get_database, close_database
-from .models import Report, ReportCreate, Location, UserReport
+from .models import (
+    Report,
+    ReportCreate,
+    Location,
+    UserReport,
+    GoogleUser,
+)
 from .repository import (
     find_report_by_location,
     find_reports_by_ids,
@@ -20,6 +26,7 @@ __all__ = [
     "ReportCreate",
     "Location",
     "UserReport",
+    "GoogleUser",
     "find_report_by_location",
     "find_reports_by_ids",
     "find_report_by_id",
