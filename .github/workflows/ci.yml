@@ -3,8 +3,8 @@ name: CI
 on:
   push:
     branches: [main]
-    # paths:
-    #   - 'graphql_microservice/**'
+    paths:
+      - 'graphql_microservice/**'
   pull_request:
     branches: [main]
     paths:
@@ -40,7 +40,7 @@ jobs:
       - name: Lint with ruff
         working-directory: graphql_microservice
         run: |
-          uv run ruff check src/
+          uv run ruff check src/graphql_microservice
 
       - name: Run tests
         working-directory: graphql_microservice
