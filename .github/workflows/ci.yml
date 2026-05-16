@@ -3,8 +3,8 @@ name: CI
 on:
   push:
     branches: [main]
-    paths:
-      - 'graphql_microservice/**'
+    # paths:
+    #   - 'graphql_microservice/**'
   pull_request:
     branches: [main]
     paths:
